@@ -1,0 +1,5 @@
+{
+  "name": "Lumina Journal",
+  "description": "A private, AI-powered journal with deep sentiment analysis and a conversational assistant to query your past entries.",
+  "requestFramePermissions": []
+}

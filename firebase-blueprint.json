@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user preferences and basic info.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email"]
+    },
+    "JournalEntry": {
+      "title": "Journal Entry",
+      "description": "A single daily journal entry with AI analysis.",
+      "type": "object",
+      "properties": {
+        "content": { "type": "string", "description": "The raw text of the journal entry." },
+        "sentimentScore": { "type": "number", "description": "Normalized score from -1 to 1." },
+        "sentimentLabel": { "type": "string", "description": "e.g., Positive, Negative, Neutral." },
+        "moodScore": { "type": "integer", "description": "1-10 scale of mood." },
+        "summary": { "type": "string", "description": "AI-generated short summary." },
+        "analysis": { "type": "string", "description": "Deep sentiment analysis text." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile document."
+    },
+    "/users/{userId}/entries/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "Collection of journal entries for a specific user."
+    }
+  }
+}

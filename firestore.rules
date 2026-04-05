@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: /users/{userId}
+    // Fields:
+    //   - displayName: string
+    //   - email: string (required)
+    //   - photoURL: string
+    //   - createdAt: timestamp
+    //
+    // Collection: /users/{userId}/entries/{entryId}
+    // Fields:
+    //   - content: string (required, max 10000 chars)
+    //   - sentimentScore: number (-1 to 1)
+    //   - sentimentLabel: string
+    //   - moodScore: int (1-10)
+    //   - summary: string
+    //   - analysis: string
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "rhyts.surana@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // User Profile Rules
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && 
+        request.resource.data.keys().hasAll(['email']) &&
+        isValidEmail(request.resource.data.email);
+      allow update: if isOwner(userId) && 
+        (!('role' in request.resource.data) || isAdmin());
+    }
+
+    // Journal Entry Rules
+    match /users/{userId}/entries/{entryId} {
+      allow read: if isOwner(userId) || isAdmin();
+      
+      function isValidEntry(data) {
+        return data.content is string && data.content.size() <= 10000 &&
+               data.createdAt is timestamp &&
+               (!('moodScore' in data) || (data.moodScore is int && data.moodScore >= 1 && data.moodScore <= 10)) &&
+               (!('sentimentScore' in data) || data.sentimentScore is number);
+      }
+
+      allow create: if isOwner(userId) && isValidEntry(request.resource.data);
+      allow update: if isOwner(userId) && isValidEntry(request.resource.data);
+      allow delete: if isOwner(userId);
+    }
+  }
+}
